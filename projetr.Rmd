@@ -1,0 +1,243 @@
+---
+title: "Rapport Projet r"
+author: "Rémi Gomez"
+date: "2023-05-30"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+options(tinytex.verbose = TRUE)
+knitr::opts_chunk$set(echo = TRUE)
+#library(ISLR,quietly = TRUE)
+library(MASS)
+#library(Epi)
+#library(aod)
+library(dplyr,quietly=TRUE)
+library("dplyr")
+library(ggplot2,quietly=TRUE)
+#library("grid")
+#library("gridExtra")
+#library("caret")
+#library(tidyverse)
+library(nortest)
+library(knitr)
+#library(lasso2)
+library("ggfortify")
+library("reshape2")
+#library(faraway)
+#library(leaps)
+library(stats)
+library(robusTest)
+library(questionr)
+```
+
+\tableofcontents
+\newpage
+\part{Introduction}
+Le but de ce TP est d'étudier une base de données répertoriant plusieurs informations sur les crimes aux usa. Cette base de données a été créée par Michael Redmond en Juillet 2009. Les donnéees sont tirées du recensement américain de 1990, du rapport uniforme sur la criminalité du FBI américain de 1995 et de la loi américaine de 1900. Nous allons essayer de voir s'il y a un lien entre certaines variables et la variable "ViolentCrimesPerPop". Mon travail s'est concentré sur les variables autour du niveau d'étude, de l'emploi, de la situation familiale ainsi que de l'immigration.
+
+```{r}
+df=read.csv("D:/StatAvecR/projetr/crimesauxusa.txt", header=FALSE)
+
+```
+Etant données le nombre de variables conséquent de notre base de données, nous nous les sommes réparties. Nous avons donc respectivement chacun supprimé les variables que nous n'allions pas utilisées.
+J'ai décidé d'analyser les variables des colonnes 35 à 67, tout en incluant la variable qui allait être comparées à toutes les autres, qui était la variable de la colonne 128. Je les ai mises dans un nouveau tableau que j'ai appelé mdf, afin de faciliter l'analyse des variables.
+
+```{r}
+mdf=df[,c(35:67,128)]
+```
+
+\newpage
+
+\part{Traitement des variables}
+
+La première chose que j'ai fait a été de changer le nom des variables, qui rendaient l'étude de la base de données assez fastidieuse.
+```{r}
+mdf <- rename.variable(mdf, "V35", "PctLess9thGrade")
+mdf <- rename.variable(mdf, "V36", "PctNotHSGrad")
+mdf <- rename.variable(mdf, "V37", "PctBSorMore")
+mdf <- rename.variable(mdf, "V38", "PctUnemployed")
+mdf <- rename.variable(mdf, "V39", "PctEmploy")
+mdf <- rename.variable(mdf, "V40", "PctEmplManu")
+mdf <- rename.variable(mdf, "V41", "PctEmplProfServ")
+mdf <- rename.variable(mdf, "V42", "PctOccupManu")
+mdf <- rename.variable(mdf, "V43", "PctOccupMgmtProf")
+mdf <- rename.variable(mdf, "V44", "MalePctDivorce")
+mdf <- rename.variable(mdf, "V45", "MalePctNevMarr")
+mdf <- rename.variable(mdf, "V46", "FemalePctDiv")
+mdf <- rename.variable(mdf, "V47", "TotalPctDiv")
+mdf <- rename.variable(mdf, "V48", "PctPerFam")
+mdf <- rename.variable(mdf, "V49", "PctFam2Par")
+mdf <- rename.variable(mdf, "V50", "PctKids2Par")
+mdf <- rename.variable(mdf, "V51", "PctYoungKids2Par")
+mdf <- rename.variable(mdf, "V52", "PctTeen2Par")
+mdf <- rename.variable(mdf, "V53", "PctWorkMomYoungKids")
+mdf <- rename.variable(mdf, "V54", "PctWorkMom")
+mdf <- rename.variable(mdf, "V55", "NumIlleg")
+mdf <- rename.variable(mdf, "V56", "PctIlleg")
+mdf <- rename.variable(mdf, "V57", "NumImmig")
+mdf <- rename.variable(mdf, "V58", "PctImmigRecent")
+mdf <- rename.variable(mdf, "V59", "PctImmigRec5")
+mdf <- rename.variable(mdf, "V60", "PctImmigRec8")
+mdf <- rename.variable(mdf, "V61", "PctImmigRec10")
+mdf <- rename.variable(mdf, "V62", "PctRecentImmig")
+mdf <- rename.variable(mdf, "V63", "PctRecImmig5")
+mdf <- rename.variable(mdf, "V64", "PctRecImmig8")
+mdf <- rename.variable(mdf, "V65", "PctRecImmig10")
+mdf <- rename.variable(mdf, "V66", "PctSpeakEngOnly")
+mdf <- rename.variable(mdf, "V67", "PctNotSpeakEngWell")
+mdf <- rename.variable(mdf, "V128", "ViolentCrimesPerPop")
+
+```
+
+Mes variables n'étant pas sujettes au manque de données, ou ne devant être changées en facteur, le traitement des variables est ainsi fini dans mon cas.
+Les variables ayant été triées, j'ai pu commencer à faire des études sur chacune des variables par rapport à la variable "ViolentCrimesPerPop", avec des nuages de points et régression linéaire ainsi qu'un test de Pearson pour pouvoir voir s'il y a une corrélation entre les 2 variables, pour chaque variable.
+\newpage
+
+\part{Etude des variables}
+
+\section{Choix des graphes}
+Pour les graphiques, j'ai décidé de faire des nuages de point avec régression linéaire, ce qui me permettra de voir si les 2 variables sont dépendantes entre elles.
+
+\section{Choix des tests}
+Les variables étant dans mon cas toutes quantitatives, je vais faire des tests de Pearson. C'est un test pour vérifier s'il y a une corrélation linéaire entre 2 variables.
+\newpage
+\section{Etude de la variable "PctLess9thGrade"}
+
+```{r}
+ggplot(mdf, aes(x=ViolentCrimesPerPop, y=PctLess9thGrade)) +
+
+  geom_point(aes(x=ViolentCrimesPerPop,y=PctLess9thGrade), color="red", fill="red", data=mdf)+labs(title="Crimes violent par population selon le pourcentage de personnes de 25 ans ou plus avec\n un grade d'éducation inférieure à 9",x="ViolentCrimesPerPop", y = "PctLess9thGrade") + theme(plot.title = element_text(face = "bold", size = 10, hjust = 0.5))+geom_smooth(method="lm", formula=y ~ x)
+
+
+cortest(mdf$ViolentCrimesPerPop, mdf$PctLess9thGrade)
+
+```
+
+On peut voir que la p-value est très petite, inférieure à $10^{-4}$, et que le coefficient de régression linéaire est de $0,411$. On rejette donc $H_0$ et on en déduit qu'il y a une corrélation linéaire moyenne entre les 2 variables.
+\newpage
+\section{Etude de la variable "PctBSorMore"}
+
+```{r}
+
+ggplot(mdf, aes(x=ViolentCrimesPerPop, y=PctBSorMore)) +
+
+  geom_point(aes(x=ViolentCrimesPerPop,y=PctBSorMore), color="red", fill="red", data=mdf)+labs(title="Crimes violent par population selon le pourcentage de personnes de 25 ans ou plus ayant\n le baccalauréat",x="ViolentCrimesPerPop", y = "PctBSorMore") + theme(plot.title = element_text(face = "bold", size = 10, hjust = 0.5))+geom_smooth(method="lm", formula=y ~ x)
+
+cortest(mdf$ViolentCrimesPerPop, mdf$PctBSorMore)
+
+```
+On peut voir que la p-value est très petite, inférieure à $10^{-4}$, et que le coefficient de régression linéaire est cette fois-ci négatif, $-0,315$. On rejette donc $H_0$ et on en déduit donc qu'il y a une corrélation linéaire moyenne entre les 2 variables.
+\newpage
+\section{Etude de la variable "PctUnemployed"}
+
+```{r}
+
+ggplot(mdf, aes(x=ViolentCrimesPerPop, y=PctUnemployed)) +
+
+  geom_point(aes(x=ViolentCrimesPerPop,y=PctUnemployed), color="red", fill="red", data=mdf)+labs(title="Crimes violent par population selon le pourcentage de personnes de 16 ans et plus, dans\n la force de l'âge, et sans emploi",x="ViolentCrimesPerPop", y = "PctUnemployed") + theme(plot.title = element_text(face = "bold", size = 10, hjust = 0.5))+geom_smooth(method="lm", formula=y ~ x)
+
+cortest(mdf$ViolentCrimesPerPop, mdf$PctUnemployed)
+
+```
+
+On peut voir que la p-value est très petite, inférieure à $10^{-4}$, le coefficient de régression linéaire est ici de $0,5$, ce qui est assez un niveau assez important. On rejette donc $H_0$ et on en déduit qu'il y a une corrélation linéaire forte entre les 2 variables.
+\newpage
+\section{Etude la variable "PctEmploy"}
+
+```{r}
+
+ggplot(mdf, aes(x=ViolentCrimesPerPop, y=PctEmploy)) +
+
+  geom_point(aes(x=ViolentCrimesPerPop,y=PctEmploy), color="red", fill="red", data=mdf)+labs(title="Crimes violent par population selon le pourcentage de personnes de 16 ans et plus qui ont\n un emploi",x="ViolentCrimesPerPop", y = "PctEmploy") + theme(plot.title = element_text(face = "bold", size = 10, hjust = 0.5))+geom_smooth(method="lm", formula=y ~ x)
+
+cortest(mdf$ViolentCrimesPerPop, mdf$PctEmploy)
+```
+On peut voir que la p-value est très petite, inférieure à $10^{-4}$, le coefficient de régression linéaire est de $-0,332$. On rejette donc $H_0$ et on en déduit qu'il y a une corrélation linéaire moyenne entre les 2 variables.
+\newpage
+\section{Etude de la variable "MalePctDivorce"}
+
+```{r}
+
+ggplot(mdf, aes(x=ViolentCrimesPerPop, y=MalePctDivorce)) +
+
+  geom_point(aes(x=ViolentCrimesPerPop,y=MalePctDivorce), color="red", fill="red", data=mdf)+labs(title="Crimes violent par population selon le pourcentage d'hommes qui ont divorcé",x="ViolcentCrimesPerPop", y = "MalePctDivorce") + theme(plot.title = element_text(face = "bold", size = 10, hjust = 0.5))+geom_smooth(method="lm", formula=y ~ x)
+
+
+cortest(mdf$ViolentCrimesPerPop, mdf$MalePctDivorce)
+```
+On peut voir que la p-value est très petite, inférieure à $10^{-4}$, et le coefficient de régression linéaire est de $0,525$. On rejette donc $H_0$ et on en déduit donc qu'il y a une corrélation linéaire forte entre les 2 variables.
+\newpage
+\section{Etude de la variable "PctKids2Par"}
+
+```{r}
+
+ggplot(mdf, aes(x=ViolentCrimesPerPop, y=PctKids2Par)) +
+
+  geom_point(aes(x=ViolentCrimesPerPop,y=PctKids2Par), color="red", fill="red", data=mdf)+labs(title="Crimes violent par population selon le pourcentage d'enfants en logement familial avec\n deux parents",x="ViolentCrimesPerPop", y = "PctKids2Par") + theme(plot.title = element_text(face = "bold", size = 10, hjust = 0.5))+geom_smooth(method="lm", formula=y ~ x)
+
+cortest(mdf$ViolentCrimesPerPop, mdf$PctKids2Par)
+```
+On peut voir que la p-value est très petite, inférieure à $10^{-4}$, le coefficient de régression linéaire est de $-0,738$. On rejette donc $H_0$ et on en déduit qu'il y a une corrélation linéaire forte entre les 2 variables.
+\newpage
+\section{Etude de la variable "NumImmig"}
+
+
+```{r}
+
+ggplot(mdf, aes(x=ViolentCrimesPerPop, y=NumImmig)) +
+
+  geom_point(aes(x=ViolentCrimesPerPop,y=NumImmig), color="red", fill="red", data=mdf)+labs(title="Crimes violent par population selon le nombre total de personnes connues pour être nées\n à l'étranger",x="ViolentCrimesPerPop", y = "NumImmig") + theme(plot.title = element_text(face = "bold", size = 10, hjust = 0.5))+geom_smooth(method="lm", formula=y ~ x)
+
+cortest(mdf$ViolentCrimesPerPop, mdf$NumImmig)
+
+
+```
+On peut voir que la p-value est très petite, inférieure à $10^{-4}$, le coefficient de régression linéaire est de $0,294$. On rejette donc $H_0$ et on en déduit qu'il y a une corrélation linéaire faible entre les 2 variables.
+\newpage
+\section{Etude de la variable "PctImmigRecent"}
+
+```{r}
+
+ggplot(mdf, aes(x=ViolentCrimesPerPop, y=PctImmigRecent)) +
+
+  geom_point(aes(x=ViolentCrimesPerPop,y=PctImmigRecent), color="red", fill="red", data=mdf)+labs(title="Crimes violent par population selon le pourcentage d'immigrés qui ont immigré\n dans les 3 dernières années",x="ViolentCrimesPerPop", y = "PctImmigRecent") + theme(plot.title = element_text(face = "bold", size = 10, hjust = 0.5))+geom_smooth(method="lm", formula=y ~ x)
+
+cortest(mdf$ViolentCrimesPerPop, mdf$PctImmigRecent)
+
+```
+On peut voir que la p-value est très petite, inférieure à $10^{-4}$, le coefficient de régression linéaire est de $0,172$. on rejette donc $H_0$ et on en déduit qu'il y a une corrélation linéaire faible entre les 2 variables.
+
+\newpage
+\section{Etude de la variable "PctRecentImmig"}
+
+
+```{r}
+
+ggplot(mdf, aes(x=ViolentCrimesPerPop, y=PctRecentImmig)) +
+
+  geom_point(aes(x=ViolentCrimesPerPop,y=PctRecentImmig), color="red", fill="red", data=mdf)+labs(title="Crimes violent par population selon le pourcentage de population qui ont immigré\n dans les 3 dernières années",x="ViolentCrimesPerPop", y = "PctRecentImmig") + theme(plot.title = element_text(face = "bold", size = 10, hjust = 0.5))+geom_smooth(method="lm", formula=y ~ x)
+
+cortest(mdf$ViolentCrimesPerPop, mdf$PctRecentImmig)
+
+```
+On peut voir que la p-value est très petite, inférieure à $10^{-4}$, le coefficient de régression linéaire est de $0,23$. On rejette donc $H_0$ et on en déduit donc qu'il y a une corrélation linéaire faible entre les 2 variables.
+\newpage
+\section{Etude de la variable "PctNotSpeakEngWell"}
+
+
+```{r}
+
+ggplot(mdf, aes(x=ViolentCrimesPerPop, y=PctNotSpeakEngWell)) +
+
+  geom_point(aes(x=ViolentCrimesPerPop,y=PctNotSpeakEngWell), color="red", fill="red", data=mdf)+labs(title="Crimes violent par population selon le pourcentage de population qui ne parle pas bien\n anglais",x="ViolentCrimesPerPop", y = "PctNotSpeakEngWell") + theme(plot.title = element_text(face = "bold", size = 10, hjust = 0.5))+geom_smooth(method="lm", formula=y ~ x)
+
+cortest(mdf$ViolentCrimesPerPop, mdf$PctNotSpeakEngWell)
+```
+La p-value est très petite, inférieure à $10^{-4}$, le coefficient de régression linéaire est de $0,3$. On rejette donc $H_0$ et on en déduit qu'il y a une corrélation linéaire moyenne entre les 2 variables.
+\newpage
+
+\part{Conclusion}
+
+Pour conclure, on peut dire que toutes ces variables sont liées à la variable "ViolentCrimesPerPop". En effet, pour chacune des variables, la dépendance à la variable "ViolentCrimesPerPop", qui était la variable que nous étudiions, était toujours présente. On a pu le constater par le fait que la p-value était à chaque fois inférieure à $10^{-4}$, ce qui est une p-value très basse. Le coefficient de régression linéaire était toujours différent de $0$. Tout ceci nous emmène à conclure que les variables étudiées sont liées à la variable "ViolentCrimesPerPop".
